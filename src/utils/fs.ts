@@ -18,6 +18,7 @@ export const listFiles = async (fs: IFsPromisesApi, dir?: string) => {
       }
     }
   }
+  await getFiles(dir)
   return files;
 }
 
@@ -36,11 +37,11 @@ export type IWriteFileOptions = Parameters<IFsPromisesApi["writeFile"]>[2]
 export const outputFile = async (fs: IFsPromisesApi, path: string, data: IWriteFileData, options?: IWriteFileOptions) => {
   const dir = dirname(path)
   const { mkdir, writeFile } = fs
-  const isExists = exists(fs, dir)
+  const isExists = await exists(fs, dir)
   if (!isExists) {
-    mkdir(dir)
+    await mkdir(dir, { recursive: true })
   }
-  writeFile(path, data, options)
+  await writeFile(path, data, options)
 }
 
 export const copyFromFs = async (fromFs: IFsPromisesApi, toFs: IFsPromisesApi, dir: string) => {

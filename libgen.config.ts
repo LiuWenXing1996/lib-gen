@@ -1,8 +1,12 @@
-import { fileURLToPath, resolve } from "node:url";
-import { defineConfig } from "./src/index";
+import { resolve } from "node:path";
+import { defineConfig } from "./src/utils/defineConfig"
 
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
+
+// TODO:支持多配置
 export default defineConfig({
   entryDir: resolve(__dirname, "./src"),
-  outDir: resolve(__dirname, "./dir"),
+  outDir: resolve(__dirname, "./dist"),
+  esbuildTransfromOptions: {
+    format: "cjs"
+  }
 });

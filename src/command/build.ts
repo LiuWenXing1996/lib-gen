@@ -1,10 +1,10 @@
 import * as esbuild from "esbuild";
-import { copyFromFs, createVfs } from "../utils/fs";
+import { copyFromFs, createVfs, listFiles as listFilesS, outputFile } from "../utils/fs";
 import type * as _IPath from "node:path";
 import type { Loader, TransformOptions } from "esbuild";
 import { transformVueFile } from "../utils/vueTransform";
 import * as nodeFs from "node:fs/promises";
-import { basename, extname, resolve } from "node:path";
+import { basename, extname, relative, resolve } from "node:path";
 
 export type IPath = typeof _IPath;
 
@@ -72,16 +72,17 @@ export const defineConfig = (config: IBuildConfig) => {
 };
 
 export const build = async (options: IBuildConfig) => {
+  // TODO:outDir是否位于项目外检测
   const {
     entryDir,
+    outDir,
     esbuildTransfromOptions,
     esbuildLoaders = {},
     outExtnames = {},
   } = options;
   const vfs = createVfs();
-  copyFromFs(nodeFs, vfs, entryDir);
+  await copyFromFs(nodeFs, vfs, entryDir);
   const { listFiles, readFile, writeFile } = vfs;
-
   const vueFiles = (await listFiles(entryDir)).filter(
     (e) => extname(e) === ".vue"
   );
@@ -108,14 +109,16 @@ export const build = async (options: IBuildConfig) => {
     allFiles.map(async (file) => {
       const content = await readFile(file);
       const extName = extname(file);
-      const baseName = basename(file);
+      const baseName = basename(file, extName);
       const loader = esbuildLoaders[extName] || getEsbuildLoader(extName);
       const result = await esbuild.transform(content, {
         ...esbuildTransfromOptions,
         loader: loader,
       });
       const outExtname = outExtnames[extName] || getOutExtname(extName);
-      const outfile = resolve(file, "../", `${baseName}${outExtname}`);
+      const relativePath = relative(entryDir, file)
+      const outfile = resolve(outDir, relativePath, "../", `${baseName}${outExtname}`);
+      await outputFile(vfs, outfile, result.code)
       return {
         fileName: outfile,
         content: result.code,
@@ -124,6 +127,6 @@ export const build = async (options: IBuildConfig) => {
   );
 
   console.log(outputFiles.map((e) => e.fileName));
-
+  await copyFromFs(vfs, nodeFs, outDir)
   return outputFiles;
 };

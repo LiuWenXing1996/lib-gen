@@ -14,8 +14,8 @@ import colors from "picocolors";
 import { build } from "esbuild";
 
 import { readJson } from "fs-extra";
-import { IBuildConfig } from "..";
 import { dynamicImport, isObject, normalizePath } from ".";
+import { IBuildConfig } from "../command/build";
 
 const debug = (msg: string) => {
   // TODO:实现debug console
@@ -64,6 +64,7 @@ export async function loadConfigFromFile(
   }
 
   let isESM = false;
+  console.log("resolvedPath",resolvedPath)
   if (/\.m[jt]s$/.test(resolvedPath)) {
     isESM = true;
   } else if (/\.c[jt]s$/.test(resolvedPath)) {
@@ -73,7 +74,7 @@ export async function loadConfigFromFile(
     try {
       const pkg = await readJson(resolve(configRoot, "package.json"));
       isESM = !!pkg && pkg.type === "module";
-    } catch (e) {}
+    } catch (e) { }
   }
 
   try {
@@ -105,6 +106,7 @@ async function bundleConfigFile(
   fileName: string,
   isESM: boolean
 ): Promise<{ code: string; dependencies: string[] }> {
+  console.log("isESM", isESM)
   const result = await build({
     absWorkingDir: process.cwd(),
     entryPoints: [fileName],
@@ -117,6 +119,7 @@ async function bundleConfigFile(
     mainFields: ["main"],
     sourcemap: "inline",
     metafile: true,
+    treeShaking: true,
   });
   const { text } = result.outputFiles[0];
   return {
